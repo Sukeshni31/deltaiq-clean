@@ -18,11 +18,11 @@ export function calculateAIQ(company, industry) {
   return {
     aiq,
     industryMedian: base,
-    percentile:
-      aiq > base + 5 ? 75 :
-      aiq > base ? 60 :
-      aiq === base ? 50 :
-      aiq > base - 5 ? 40 : 25,
+    const delta = aiq - base;
+const percentile = Math.max(
+  10,
+  Math.min(90, Math.round(50 + delta * 4))
+);
     radar: [
       aiq - 5,
       aiq + 2,
