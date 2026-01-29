@@ -1,37 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <title>DeltaAIQ</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      max-width: 720px;
-      margin: 40px auto;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      font-size: 15px;
-    }
-    button {
-      cursor: pointer;
-    }
-    .card {
-      border: 1px solid #ddd;
-      padding: 16px;
-      margin-top: 16px;
-      border-radius: 8px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>DeltaAIQ</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; }
+input, select, button { width: 100%; padding: 10px; margin: 8px 0; font-size: 15px; }
+button { cursor: pointer; }
+.card { border: 1px solid #ddd; padding: 16px; margin-top: 16px; border-radius: 8px; }
+#results { border: 1px solid #ddd; max-height: 150px; overflow-y: auto; }
+#results div { padding: 4px; cursor: pointer; }
+#results div:hover { background: #f0f0f0; }
+</style>
 </head>
 <body>
 
 <h1>DeltaAIQ</h1>
 <p>AI Readiness Benchmark</p>
 
-<input id="company" placeholder="Company name (e.g. Everest)" />
+<input id="company" placeholder="Start typing a company name">
+<div id="results"></div>
 
 <select id="industry">
   <option value="">Select Industry</option>
@@ -48,17 +36,35 @@
 <div id="output"></div>
 
 <script>
-<script>
+const input = document.getElementById("company");
+const results = document.getElementById("results");
+let timer;
+
+// --- Autocomplete ---
+input.addEventListener("input", () => {
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    const q = input.value.trim();
+    if (!q) { results.innerHTML = ""; return; }
+    const res = await fetch(`/api/companies?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    results.innerHTML = data.map(c => `<div onclick="selectCompany('${c}')">${c}</div>`).join("");
+  }, 300);
+});
+
+function selectCompany(name) {
+  input.value = name;
+  results.innerHTML = "";
+}
+
+// --- Generate AIQ ---
 async function generate() {
-  const company = document.getElementById("company").value.trim();
+  const company = input.value.trim();
   const industry = document.getElementById("industry").value;
-
-  if (!company || !industry) {
-    alert("Please enter company and select industry");
-    return;
-  }
-
   const output = document.getElementById("output");
+
+  if (!company || !industry) { alert("Enter company and industry"); return; }
+
   output.innerHTML = "Calculating AIQ…";
 
   try {
@@ -68,11 +74,7 @@ async function generate() {
       body: JSON.stringify({ company, industry })
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text);
-    }
-
+    if (!res.ok) { const t = await res.text(); throw new Error(t); }
     const data = await res.json();
 
     output.innerHTML = `
@@ -84,19 +86,16 @@ async function generate() {
 
       <div class="card">
         <h3>Peer Comparison</h3>
-        ${data.peerComparison.peers.map(p =>
-          `<div>${p.name} — <strong>${p.score}</strong></div>`
-        ).join("")}
+        ${data.peerComparison.peers.map(p => `<div>${p.name} — <strong>${p.score}</strong></div>`).join("")}
         <p><strong>Rank:</strong> ${data.peerComparison.rank} of ${data.peerComparison.total}</p>
       </div>
     `;
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     output.innerHTML = `<p style="color:red">Error: ${err.message}</p>`;
   }
 }
 </script>
-
 
 </body>
 </html>
