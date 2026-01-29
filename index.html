@@ -36,7 +36,34 @@
     const results = document.getElementById("results");
     let timer;
 
+   <script>
+  if (!window.__DELTAAIQ_INIT__) {
+    window.__DELTAAIQ_INIT__ = true;
+
+    const input = document.getElementById("q");
+    const results = document.getElementById("results");
+    let timer;
+
     input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const q = input.value.trim();
+        if (!q) {
+          results.innerHTML = "";
+          return;
+        }
+
+        const res = await fetch(`/api/companies?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+
+        results.innerHTML = data.map(c =>
+          `<div class="item">${c}</div>`
+        ).join("");
+      }, 300);
+    });
+  }
+</script>
+
       clearTimeout(timer);
       timer = setTimeout(async () => {
         const q = input.value.trim();
