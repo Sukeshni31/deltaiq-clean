@@ -1,14 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>DeltaAIQ</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: system-ui; max-width: 900px; margin: 40px auto; }
-    select, input { padding: 10px; width: 100%; margin-bottom: 12px; }
-    .score { font-size: 32px; font-weight: bold; }
-    canvas { margin-top: 30px; }
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 720px;
+      margin: 40px auto;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      font-size: 15px;
+    }
+    button {
+      cursor: pointer;
+    }
+    .card {
+      border: 1px solid #ddd;
+      padding: 16px;
+      margin-top: 16px;
+      border-radius: 8px;
+    }
   </style>
 </head>
 <body>
@@ -16,66 +31,51 @@
 <h1>DeltaAIQ</h1>
 <p>AI Readiness Benchmark</p>
 
-<input id="company" placeholder="Company name" />
+<input id="company" placeholder="Company name (e.g. Everest)" />
 
 <select id="industry">
+  <option value="">Select Industry</option>
   <option>IT Services</option>
-  <option>SaaS / Product</option>
   <option>Aviation</option>
   <option>Manufacturing</option>
   <option>Pharma / Healthcare</option>
+  <option>SaaS / Product</option>
   <option>GCC / Captive</option>
 </select>
 
-<button onclick="runAIQ()">Generate AIQ</button>
+<button onclick="generate()">Generate AIQ</button>
 
-<div id="result"></div>
+<div id="output"></div>
 
-<canvas id="radar"></canvas>
-<canvas id="bar"></canvas>
+<script>
+async function generate() {
+  const company = document.getElementById("company").value;
+  const industry = document.getElementById("industry").value;
 
-<script type="module">
-  import { calculateAIQ } from './aiq.js';
+  const res = await fetch("/api/aiq", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ company, industry })
+  });
 
-  let radarChart, barChart;
+  const data = await res.json();
 
-  window.runAIQ = () => {
-    const company = document.getElementById("company").value;
-    const industry = document.getElementById("industry").value;
+  document.getElementById("output").innerHTML = `
+    <div class="card">
+      <h2>${data.aiq} / 100</h2>
+      <p><strong>Industry median:</strong> ${data.industryMedian}</p>
+      <p><strong>Position:</strong> ${data.position}</p>
+    </div>
 
-    if (!company) return alert("Enter company name");
-
-    const data = calculateAIQ(company, industry);
-
-    document.getElementById("result").innerHTML = `
-      <div class="score">${data.aiq} / 100</div>
-      <p>Industry median: ${data.industryMedian}</p>
-      <p>Position: Top ${data.percentile}%</p>
-    `;
-
-    if (radarChart) radarChart.destroy();
-    radarChart = new Chart(document.getElementById("radar"), {
-      type: 'radar',
-      data: {
-        labels: ["Talent", "Tools", "Data", "Governance", "Delivery", "Change"],
-        datasets: [{
-          label: company,
-          data: data.radar
-        }]
-      }
-    });
-
-    if (barChart) barChart.destroy();
-    barChart = new Chart(document.getElementById("bar"), {
-      type: 'bar',
-      data: {
-        labels: ["Company", "Industry"],
-        datasets: [{
-          data: [data.aiq, data.industryMedian]
-        }]
-      }
-    });
-  };
+    <div class="card">
+      <h3>Peer Comparison</h3>
+      ${data.peerComparison.peers.map(p =>
+        `<div>${p.name} — <strong>${p.score}</strong></div>`
+      ).join("")}
+      <p><strong>Rank:</strong> ${data.peerComparison.rank} of ${data.peerComparison.total}</p>
+    </div>
+  `;
+}
 </script>
 
 </body>
