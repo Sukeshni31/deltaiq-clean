@@ -48,35 +48,55 @@
 <div id="output"></div>
 
 <script>
+<script>
 async function generate() {
-  const company = document.getElementById("company").value;
+  const company = document.getElementById("company").value.trim();
   const industry = document.getElementById("industry").value;
 
-  const res = await fetch("/api/aiq", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ company, industry })
-  });
+  if (!company || !industry) {
+    alert("Please enter company and select industry");
+    return;
+  }
 
-  const data = await res.json();
+  const output = document.getElementById("output");
+  output.innerHTML = "Calculating AIQ…";
 
-  document.getElementById("output").innerHTML = `
-    <div class="card">
-      <h2>${data.aiq} / 100</h2>
-      <p><strong>Industry median:</strong> ${data.industryMedian}</p>
-      <p><strong>Position:</strong> ${data.position}</p>
-    </div>
+  try {
+    const res = await fetch("/api/aiq", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company, industry })
+    });
 
-    <div class="card">
-      <h3>Peer Comparison</h3>
-      ${data.peerComparison.peers.map(p =>
-        `<div>${p.name} — <strong>${p.score}</strong></div>`
-      ).join("")}
-      <p><strong>Rank:</strong> ${data.peerComparison.rank} of ${data.peerComparison.total}</p>
-    </div>
-  `;
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text);
+    }
+
+    const data = await res.json();
+
+    output.innerHTML = `
+      <div class="card">
+        <h2>${data.aiq} / 100</h2>
+        <p><strong>Industry median:</strong> ${data.industryMedian}</p>
+        <p><strong>Position:</strong> ${data.position}</p>
+      </div>
+
+      <div class="card">
+        <h3>Peer Comparison</h3>
+        ${data.peerComparison.peers.map(p =>
+          `<div>${p.name} — <strong>${p.score}</strong></div>`
+        ).join("")}
+        <p><strong>Rank:</strong> ${data.peerComparison.rank} of ${data.peerComparison.total}</p>
+      </div>
+    `;
+  } catch (err) {
+    console.error(err);
+    output.innerHTML = `<p style="color:red">Error: ${err.message}</p>`;
+  }
 }
 </script>
+
 
 </body>
 </html>
