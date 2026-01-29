@@ -1,86 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>DeltaAIQ – Company Search</title>
+  <meta charset="UTF-8">
+  <title>DeltaAIQ</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      max-width: 720px;
-      margin: 40px auto;
-      padding: 0 16px;
-    }
-    input {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      margin-top: 8px;
-    }
-    .item {
-      padding: 6px 0;
-      border-bottom: 1px solid #eee;
-    }
+    body { font-family: system-ui; max-width: 900px; margin: 40px auto; }
+    select, input { padding: 10px; width: 100%; margin-bottom: 12px; }
+    .score { font-size: 32px; font-weight: bold; }
+    canvas { margin-top: 30px; }
   </style>
 </head>
 <body>
 
-  <h1>DeltaAIQ</h1>
-  <p>Start typing a company name</p>
+<h1>DeltaAIQ</h1>
+<p>AI Readiness Benchmark</p>
 
-  <input id="q" placeholder="Lufthansa, Apple, TCS…" />
+<input id="company" placeholder="Company name" />
 
-  <div id="results"></div>
+<select id="industry">
+  <option>IT Services</option>
+  <option>SaaS / Product</option>
+  <option>Aviation</option>
+  <option>Manufacturing</option>
+  <option>Pharma / Healthcare</option>
+  <option>GCC / Captive</option>
+</select>
 
-  <script>
-    const input = document.getElementById("q");
-    const results = document.getElementById("results");
-    let timer;
+<button onclick="runAIQ()">Generate AIQ</button>
 
-   <script>
-  if (!window.__DELTAAIQ_INIT__) {
-    window.__DELTAAIQ_INIT__ = true;
+<div id="result"></div>
 
-    const input = document.getElementById("q");
-    const results = document.getElementById("results");
-    let timer;
+<canvas id="radar"></canvas>
+<canvas id="bar"></canvas>
 
-    input.addEventListener("input", () => {
-      clearTimeout(timer);
-      timer = setTimeout(async () => {
-        const q = input.value.trim();
-        if (!q) {
-          results.innerHTML = "";
-          return;
-        }
+<script type="module">
+  import { calculateAIQ } from './aiq.js';
 
-        const res = await fetch(`/api/companies?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
+  let radarChart, barChart;
 
-        results.innerHTML = data.map(c =>
-          `<div class="item">${c}</div>`
-        ).join("");
-      }, 300);
+  window.runAIQ = () => {
+    const company = document.getElementById("company").value;
+    const industry = document.getElementById("industry").value;
+
+    if (!company) return alert("Enter company name");
+
+    const data = calculateAIQ(company, industry);
+
+    document.getElementById("result").innerHTML = `
+      <div class="score">${data.aiq} / 100</div>
+      <p>Industry median: ${data.industryMedian}</p>
+      <p>Position: Top ${data.percentile}%</p>
+    `;
+
+    if (radarChart) radarChart.destroy();
+    radarChart = new Chart(document.getElementById("radar"), {
+      type: 'radar',
+      data: {
+        labels: ["Talent", "Tools", "Data", "Governance", "Delivery", "Change"],
+        datasets: [{
+          label: company,
+          data: data.radar
+        }]
+      }
     });
-  }
+
+    if (barChart) barChart.destroy();
+    barChart = new Chart(document.getElementById("bar"), {
+      type: 'bar',
+      data: {
+        labels: ["Company", "Industry"],
+        datasets: [{
+          data: [data.aiq, data.industryMedian]
+        }]
+      }
+    });
+  };
 </script>
-
-      clearTimeout(timer);
-      timer = setTimeout(async () => {
-        const q = input.value.trim();
-        if (!q) {
-          results.innerHTML = "";
-          return;
-        }
-
-        const res = await fetch(`/api/companies?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-
-        results.innerHTML = data.map(c =>
-          `<div class="item">${c}</div>`
-        ).join("");
-      }, 300);
-    });
-  </script>
 
 </body>
 </html>
